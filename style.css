@@ -1,0 +1,29 @@
+body{
+    background-color: black;
+}
+h1{
+    color: white
+}
+p{
+    color: white
+}
+#p1{
+    color: red
+}
+#p2{
+    color: yellow
+}#p3{
+    color: orange
+}#p4{
+    color: green
+}
+.odd
+
+div {
+    margin: 20px;
+    border: 30px solid blue;
+    padding: 20px;
+    background-color: red;
+    height: 100px;
+    width: 200px;
+  }
