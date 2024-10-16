@@ -1,13 +1,13 @@
 body {
     background-color: #121212;
-    color: #f5f5f5;
-    font-family: Arial, sans-serif;
+    color: #ffffff;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
     margin: 0;
     padding: 0;
 }
 
 h1, h4 {
-    color: #ffcc00;
+    color: #1DB954;
     text-align: center;
     margin: 20px 0;
 }
@@ -18,7 +18,7 @@ h1, h4 {
     margin: auto;
     padding: 20px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    background-color: #1e1e1e;
+    background-color: #282828;
     border-radius: 10px;
     text-align: center;
 }
@@ -33,7 +33,7 @@ h1, h4 {
 }
 
 a {
-    color: #ffcc00;
+    color: #1DB954;
     text-decoration: none;
     font-size: 18px;
 }
@@ -43,14 +43,14 @@ a:hover {
 }
 
 p {
-    color: #d3d3d3;
+    color: #b3b3b3;
     font-size: 16px;
     padding: 10px;
     text-align: center;
 }
 
 .lyrics {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(29, 185, 84, 0.1);
     padding: 20px;
     border-radius: 10px;
     margin: 20px 0;
@@ -69,14 +69,14 @@ p {
     padding: 10px;
     cursor: pointer;
     transition: background 0.3s;
-    color: #ffcc00;
+    color: #1DB954;
     margin-bottom: 5px;
     border-radius: 5px;
     text-align: left;
 }
 
 .song-list li:hover {
-    background-color: #333;
+    background-color: #333333;
 }
 
 .current-song {
@@ -92,5 +92,3 @@ p {
 .audio-player audio {
     width: 100%;
 }
-
-
