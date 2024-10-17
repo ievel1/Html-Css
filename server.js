@@ -24,7 +24,16 @@ app.use('/music', express.static(path.join(__dirname, 'music')));
 
 // Login route
 app.get('/login', (req, res) => {
-  const scopes = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state';
+  const scopes = [
+    'streaming',
+    'user-read-email',
+    'user-read-private',
+    'user-read-playback-state',
+    'user-modify-playback-state',
+    'playlist-read-private',
+    'playlist-read-collaborative',
+  ].join(' ');
+
   res.redirect('https://accounts.spotify.com/authorize' +
     '?response_type=code' +
     '&client_id=' + encodeURIComponent(client_id) +
@@ -84,11 +93,11 @@ app.get('/refresh_token', async (req, res) => {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
   };
-
+  
   try {
     const response = await fetch('https://accounts.spotify.com/api/token', authOptions);
     const body = await response.json();
-
+    
     if (response.ok) {
       const access_token = body.access_token;
       res.send({ 'access_token': access_token });
@@ -98,6 +107,72 @@ app.get('/refresh_token', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).send({ error: 'Failed to refresh token' });
+  }
+});
+
+// Search endpoint
+app.get('/search', async (req, res) => {
+  const query = req.query.q;
+  const authHeader = req.headers.authorization;
+  
+  if (!query || !authHeader) {
+    return res.status(400).send({ error: 'Missing query or access token' });
+  }
+  
+  const access_token = authHeader.split(' ')[1];
+  
+  const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=10`;
+  
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${access_token}`,
+      },
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      res.send(data);
+    } else {
+      const errorData = await response.json();
+      console.error('Spotify API Error:', response.status, errorData);
+      res.status(response.status).send(errorData);
+    }
+  } catch (error) {
+    console.error('Error in /search:', error);
+    res.status(500).send({ error: 'Failed to search' });
+  }
+});
+
+// Playlists endpoint
+app.get('/playlists', async (req, res) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(400).send({ error: 'Missing access token' });
+  }
+
+  const access_token = authHeader.split(' ')[1];
+  const url = 'https://api.spotify.com/v1/me/playlists';
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${access_token}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      res.send(data);
+    } else {
+      const errorData = await response.json();
+      console.error('Spotify API Error:', response.status, errorData);
+      res.status(response.status).send(errorData);
+    }
+  } catch (error) {
+    console.error('Error in /playlists:', error);
+    res.status(500).send({ error: 'Failed to fetch playlists' });
   }
 });
 

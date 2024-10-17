@@ -1,9 +1,16 @@
+/* style.css */
+
+/* Reset some default styles */
+body, html {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
 body {
     background-color: #121212;
     color: #ffffff;
     font-family: 'Helvetica Neue', Arial, sans-serif;
-    margin: 0;
-    padding: 0;
 }
 
 h1, h4 {
@@ -13,14 +20,11 @@ h1, h4 {
 }
 
 .container {
-    width: 100%;
+    position: relative;
+    min-height: 100%;
     max-width: 800px;
     margin: auto;
     padding: 20px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    background-color: #282828;
-    border-radius: 10px;
-    text-align: center;
 }
 
 .img-center {
@@ -29,7 +33,6 @@ h1, h4 {
     max-width: 100%;
     height: auto;
     border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 a {
@@ -49,6 +52,10 @@ p {
     text-align: center;
 }
 
+.navbar {
+    z-index: 2;
+}
+
 .lyrics {
     background-color: rgba(29, 185, 84, 0.1);
     padding: 20px;
@@ -59,36 +66,101 @@ p {
     text-align: left;
 }
 
-.song-list {
-    list-style: none;
-    padding: 0;
-    margin: 20px 0;
+.list-group-item {
+    background-color: #282828;
+    border: none;
+    color: #fff;
 }
 
-.song-list li {
-    padding: 10px;
+.list-group-item:hover {
+    background-color: #333;
     cursor: pointer;
-    transition: background 0.3s;
-    color: #1DB954;
-    margin-bottom: 5px;
-    border-radius: 5px;
-    text-align: left;
 }
 
-.song-list li:hover {
-    background-color: #333333;
+.btn {
+    margin: 5px;
 }
 
-.current-song {
-    font-size: 18px;
-    margin: 20px 0;
+.progress {
+    height: 10px;
+    cursor: pointer;
+    background-color: #333;
 }
 
-.audio-player {
-    margin: 20px 0;
-    max-width: 100%;
+.progress-bar {
+    background-color: #1DB954;
 }
 
-.audio-player audio {
+#main-container {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    transition: background-image 0.5s ease-in-out;
+    position: relative;
+    z-index: 1; /* Ensure it is above the background overlay */
+}
+
+#main-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
+    height: 100%;
+    backdrop-filter: blur(10px);
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: -1; /* Place the overlay behind the content */
+}
+
+.card {
+    background-color: rgba(40, 40, 40, 0.8);
+    backdrop-filter: blur(5px);
+    border: none;
+}
+
+.album-cover img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px;
+}
+
+.volume-control {
+    width: 100%;
+    max-width: 300px;
+    margin: auto;
+}
+
+@media (max-width: 576px) {
+    .btn i {
+        font-size: 1em;
+    }
+
+    .btn {
+        padding: 8px;
+    }
+}
+
+/* Login Button Styles */
+#login-button {
+    opacity: 1;
+    pointer-events: auto;
+    background-color: #1DB954;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 1.2em;
+    border-radius: 5px;
+}
+
+#login-button:hover {
+    background-color: #1ed760;
+}
+
+/* Responsive adjustments for login button */
+@media (max-width: 576px) {
+    #login-button {
+        font-size: 1em;
+        padding: 8px 16px;
+    }
 }
