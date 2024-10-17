@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Player</title>
+    <!-- Include Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Include your custom CSS -->
+    <link rel="stylesheet" type="text/css" href="../css/style.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="#">Music Player</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <!-- Spotify Link in Navbar -->
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <!-- Spotify link will be updated dynamically -->
+                    <a class="nav-link" id="spotify-link" href="#" target="_blank" title="Spotify link">Listen on Spotify</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Login with Spotify Button -->
+    <div class="text-center mt-3">
+        <button id="login-button" class="btn btn-success">Login with Spotify</button>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="card text-center">
+                    <div class="card-header">
+                        <h1 id="song-title">No song playing</h1>
+                        <h4 id="current-artist"></h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- YouTube Link -->
+                        <a href="#" id="youtube-link" target="_blank" class="btn btn-primary my-3" title="Original music video">Original video</a>
+                        <!-- Album Cover -->
+                        <div class="album-cover mb-3">
+                            <img class="img-fluid" id="album-cover" src="../images/Finding.jpg" alt="Album cover">
+                        </div>
+                        <!-- Show/Hide Lyrics Button -->
+                        <button id="toggle-lyrics" class="btn btn-secondary mb-3">Show Lyrics</button>
+                        <!-- Lyrics Section -->
+                        <div class="lyrics" id="lyrics-container" style="display: none;">
+                            <pre id="lyrics" class="border p-3"></pre>
+                        </div>
+                        <!-- Now Playing -->
+                        <div class="current-song">Now Playing: <span id="now-playing">None</span></div>
+                        <!-- Audio Player for Local Playback -->
+                        <div class="audio-player mt-3">
+                            <audio id="audio-player" controls>
+                                <source id="audio-source" src="" type="audio/mpeg">
+                            </audio>
+                        </div>
+                    </div>
+                </div>
+                <div class="container mt-3">
+                    <div class="input-group mb-3">
+                      <input type="text" id="search-input" class="form-control" placeholder="Search Spotify">
+                      <div class="input-group-append">
+                        <button id="search-button" class="btn btn-outline-secondary" type="button">Search</button>
+                      </div>
+                    </div>
+                </div>
+                <div class="container">
+                    <ul class="list-group" id="search-results"></ul>
+                </div>
+                <!-- Song List -->
+                <ul class="list-group mt-4" id="song-list"></ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="text-center mt-3">
+      <button id="activate-player" class="btn btn-primary">Enable Player</button>
+    </div>
+    <!-- Include JavaScript Libraries -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>    
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- Include Your Main JavaScript File -->
+    <script src="../javascript/main.js"></script>
+    <!-- Include Spotify Web Playback SDK -->
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
+</body>
+</html>
