@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Music Player</title>
+  <!-- Viewport Meta Tag for Responsive Design -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Include Bootstrap CSS from CDN -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- Include Font Awesome CSS from CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <!-- Include your custom CSS -->
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- Main Container -->
+  <div id="main-container">
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+      <a class="navbar-brand" href="#">My Music Player</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavLyrics" aria-controls="navbarNavLyrics" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <!-- Navbar Links -->
+      <div class="collapse navbar-collapse" id="navbarNavLyrics">
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item"><a class="nav-link" href="#" id="nav-home">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" id="nav-profile">Profile</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" id="nav-settings">Settings</a></li>
+          <!-- Spotify Link in Navbar -->
+          <li class="nav-item">
+            <a class="nav-link" id="spotify-link" href="#" target="_blank" rel="noopener noreferrer" title="Spotify link" style="display: none;">Listen on Spotify</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Content Sections -->
+    <div class="container mt-5 pt-5">
+      <!-- Home Section -->
+      <div id="home-section" class="active">
+        <!-- Login with Spotify Button -->
+        <div class="text-center mt-3">
+          <button id="login-button" class="btn btn-success">Login with Spotify</button>
+        </div>
+
+        <!-- Player Card -->
+        <div class="card text-center mt-4">
+          <div class="card-header">
+            <h1 id="song-title">No song playing</h1>
+            <h4 id="current-artist"></h4>
+          </div>
+          <div class="card-body">
+            <!-- YouTube Link -->
+            <a href="#" id="youtube-link" target="_blank" rel="noopener noreferrer" class="btn btn-primary my-3" title="Original music video">Original video</a>
+            <!-- Album Cover -->
+            <div class="album-cover mb-3">
+              <img class="img-fluid" id="album-cover" src="/images/default.jpg" alt="Album cover">
+            </div>
+            <!-- Show/Hide Lyrics Button -->
+            <button id="toggle-lyrics" class="btn btn-secondary mb-3">Show Lyrics</button>
+            <!-- Lyrics Section -->
+            <div class="lyrics" id="lyrics-container" style="display: none;">
+              <pre id="lyrics" class="border p-3"></pre>
+            </div>
+            <!-- Now Playing -->
+            <div class="current-song">Now Playing: <span id="now-playing">None</span></div>
+            <!-- Playback Controls -->
+            <div class="container mt-3">
+              <div class="row justify-content-center">
+                <button id="prev-button" class="btn btn-secondary mx-2" aria-label="Previous"><i class="fas fa-step-backward"></i></button>
+                <button id="play-pause-button" class="btn btn-primary mx-2" aria-label="Play/Pause"><i class="fas fa-play"></i></button>
+                <button id="next-button" class="btn btn-secondary mx-2" aria-label="Next"><i class="fas fa-step-forward"></i></button>
+              </div>
+              <!-- Additional Controls -->
+              <div class="row justify-content-center mt-2">
+                <button id="shuffle-button" class="btn btn-secondary mx-2" aria-label="Shuffle"><i class="fas fa-random"></i></button>
+                <button id="repeat-button" class="btn btn-secondary mx-2" aria-label="Repeat"><i class="fas fa-redo"></i></button>
+              </div>
+              <!-- Progress Bar -->
+              <div class="progress mt-3" style="cursor: pointer;">
+                <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+              <!-- Volume Control -->
+              <div class="volume-control mt-3">
+                <label for="volume-control">Volume</label>
+                <input type="range" id="volume-control" min="0" max="100" value="50" aria-label="Volume Control">
+              </div>
+            </div>
+            <!-- Audio Player for Local Playback -->
+            <audio id="audio-player" style="display: none;">
+              <source id="audio-source" src="" type="audio/mpeg">
+            </audio>
+          </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="container mt-3">
+          <div class="input-group mb-3">
+            <input type="text" id="search-input" class="form-control" placeholder="Search Spotify" aria-label="Search Spotify">
+            <div class="input-group-append">
+              <button id="search-button" class="btn btn-outline-secondary" type="button" aria-label="Search"><i class="fas fa-search"></i></button>
+            </div>
+          </div>
+        </div>
+        <!-- Search Results -->
+        <div class="container">
+          <ul class="list-group" id="search-results"></ul>
+        </div>
+
+        <!-- Playlists -->
+        <div class="container mt-4">
+          <h3>Your Playlists</h3>
+          <ul class="list-group" id="playlist-list"></ul>
+        </div>
+        <!-- Local Song List -->
+        <div class="container mt-4">
+          <h3>Your Local Songs</h3>
+          <ul class="list-group" id="song-list"></ul>
+        </div>
+      </div>
+
+      <!-- Profile Section -->
+      <div id="profile-section" style="display: none;">
+        <h2>Profile</h2>
+        <p>Welcome to your profile page.</p>
+        <!-- Add profile content here -->
+      </div>
+
+      <!-- Settings Section -->
+      <div id="settings-section" style="display: none;">
+        <h2>Settings</h2>
+        <p>Adjust your preferences here.</p>
+        <!-- Add settings content here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Include JavaScript Libraries from CDN -->
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+  <!-- Include Your Main JavaScript File -->
+  <script src="/javascript/main.js"></script>
+  <!-- Include Spotify Web Playback SDK -->
+  <script src="https://sdk.scdn.co/spotify-player.js"></script>
+</body>
+</html>

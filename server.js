@@ -1,181 +1,76 @@
+// server.js
+
 const express = require('express');
 const cors = require('cors');
-const path = require('path'); // For serving static files
-require('dotenv').config(); // Load environment variables
+const path = require('path');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
+const fs = require('fs');
+const https = require('https');
+require('dotenv').config();
+
+// Import routes
+const authRoutes = require('./routes/authRoutes');
+const apiRoutes = require('./routes/apiRoutes');
 
 const app = express();
-const port = 8000; // You can choose any available port
+const port = process.env.PORT || 8000;
 
-const client_id = process.env.SPOTIFY_CLIENT_ID; // Spotify Client ID from .env
-const client_secret = process.env.SPOTIFY_CLIENT_SECRET; // Spotify Client Secret from .env
-const redirect_uri = 'http://localhost:8000/callback'; // Ensure this matches your Spotify app settings
+// Security middleware
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'", 'https://sdk.scdn.co'],
+        scriptSrc: ["'self'", 'https://sdk.scdn.co'],
+        connectSrc: ["'self'", 'https://api.spotify.com', 'https://sdk.scdn.co'],
+        frameSrc: ["'self'", 'https://sdk.scdn.co'],
+        imgSrc: ["'self'", 'data:', 'https://i.scdn.co'],
+      },
+    },
+  })
+);
 
+// CORS middleware
 app.use(cors());
 
-// Serve static files from your project folders
-app.use('/css', express.static(path.join(__dirname, 'css')));
-app.use('/html', express.static(path.join(__dirname, 'html')));
-app.use('/images', express.static(path.join(__dirname, 'images')));
-app.use('/javascript', express.static(path.join(__dirname, 'javascript')));
-app.use('/lyrics', express.static(path.join(__dirname, 'lyrics')));
-app.use('/music', express.static(path.join(__dirname, 'music')));
+// HTTP request logger
+app.use(morgan('combined'));
 
-// Spotify Authentication Routes
-
-// Login route
-app.get('/login', (req, res) => {
-  const scopes = [
-    'streaming',
-    'user-read-email',
-    'user-read-private',
-    'user-read-playback-state',
-    'user-modify-playback-state',
-    'playlist-read-private',
-    'playlist-read-collaborative',
-  ].join(' ');
-
-  res.redirect('https://accounts.spotify.com/authorize' +
-    '?response_type=code' +
-    '&client_id=' + encodeURIComponent(client_id) +
-    '&scope=' + encodeURIComponent(scopes) +
-    '&redirect_uri=' + encodeURIComponent(redirect_uri));
+// Rate limiting middleware
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // Limit each IP to 1000 requests per windowMs
+  message: { error: 'Too many requests, please try again later.' },
 });
 
-// Callback route
-app.get('/callback', async (req, res) => {
-  const code = req.query.code || null;
-  
-  const authOptions = {
-    method: 'POST',
-    body: new URLSearchParams({
-      code: code,
-      redirect_uri: redirect_uri,
-      grant_type: 'authorization_code',
-    }),
-    headers: {
-      'Authorization': 'Basic ' + Buffer.from(client_id + ':' + client_secret).toString('base64'),
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-  };
+app.use(limiter);
 
-  try {
-    const response = await fetch('https://accounts.spotify.com/api/token', authOptions);
-    const body = await response.json();
+// Serve static files from the 'public' directory
+app.use(express.static(path.join(__dirname, 'public')));
 
-    if (response.ok) {
-      const access_token = body.access_token;
-      const refresh_token = body.refresh_token;
+// Body parser middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-      // Pass the tokens in the query parameters to the client
-      res.redirect('/html/lyrics.html#' +
-        'access_token=' + access_token +
-        '&refresh_token=' + refresh_token);
-    } else {
-      res.redirect('/html/lyrics.html#error=' + encodeURIComponent(body.error_description));
-    }
-  } catch (error) {
-    console.error(error);
-    res.redirect('/html/lyrics.html#error=invalid_token');
-  }
+// Routes
+app.use('/', authRoutes);
+app.use('/', apiRoutes);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Unhandled Error:', err.stack);
+  res.status(500).send({ error: 'Something went wrong!' });
 });
 
-// Token refresh route
-app.get('/refresh_token', async (req, res) => {
-  const refresh_token = req.query.refresh_token;
-  const authOptions = {
-    method: 'POST',
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refresh_token,
-    }),
-    headers: {
-      'Authorization': 'Basic ' + Buffer.from(client_id + ':' + client_secret).toString('base64'),
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-  };
-  
-  try {
-    const response = await fetch('https://accounts.spotify.com/api/token', authOptions);
-    const body = await response.json();
-    
-    if (response.ok) {
-      const access_token = body.access_token;
-      res.send({ 'access_token': access_token });
-    } else {
-      res.status(response.status).send(body);
-    }
-  } catch (error) {
-    console.error(error);
-    res.status(500).send({ error: 'Failed to refresh token' });
-  }
-});
+// HTTPS server options
+const options = {
+  key: fs.readFileSync('key.pem'),
+  cert: fs.readFileSync('cert.pem'),
+};
 
-// Search endpoint
-app.get('/search', async (req, res) => {
-  const query = req.query.q;
-  const authHeader = req.headers.authorization;
-  
-  if (!query || !authHeader) {
-    return res.status(400).send({ error: 'Missing query or access token' });
-  }
-  
-  const access_token = authHeader.split(' ')[1];
-  
-  const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=10`;
-  
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${access_token}`,
-      },
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      res.send(data);
-    } else {
-      const errorData = await response.json();
-      console.error('Spotify API Error:', response.status, errorData);
-      res.status(response.status).send(errorData);
-    }
-  } catch (error) {
-    console.error('Error in /search:', error);
-    res.status(500).send({ error: 'Failed to search' });
-  }
-});
-
-// Playlists endpoint
-app.get('/playlists', async (req, res) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
-    return res.status(400).send({ error: 'Missing access token' });
-  }
-
-  const access_token = authHeader.split(' ')[1];
-  const url = 'https://api.spotify.com/v1/me/playlists';
-
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${access_token}`,
-      },
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      res.send(data);
-    } else {
-      const errorData = await response.json();
-      console.error('Spotify API Error:', response.status, errorData);
-      res.status(response.status).send(errorData);
-    }
-  } catch (error) {
-    console.error('Error in /playlists:', error);
-    res.status(500).send({ error: 'Failed to fetch playlists' });
-  }
-});
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+// Start HTTPS server
+https.createServer(options, app).listen(port, () => {
+  console.log(`Secure server running on port ${port}`);
 });
