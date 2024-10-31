@@ -1,5 +1,7 @@
 // main.js
 
+let isPlayingLocal = false;
+
 // Parse the URL hash to get access token
 function getHashParams() {
   const hash = window.location.hash.substring(1);
@@ -67,7 +69,14 @@ let player; // Spotify Player
 let audioPlayer; // Local audio player
 let spotifyTrackDuration = 0; // For Spotify track duration
 let playerState = null; // Store the latest Spotify player state
-let spotifyProgressInterval; // Interval for updating Spotify progress
+
+
+  // Initialize Spotify Player when SDK is ready
+  window.onSpotifyWebPlaybackSDKReady = () => {
+    if (accessToken) {
+      initializePlayer();
+    }
+  };
 
 // Initialize the application after DOM is fully loaded
 document.addEventListener('DOMContentLoaded', function () {
@@ -80,6 +89,8 @@ document.addEventListener('DOMContentLoaded', function () {
   } else {
     document.getElementById('login-button').style.display = 'none';
     fetchPlaylists(); // Fetch playlists after authentication
+    // Start fetching the currently playing track every 5 seconds
+    setInterval(fetchCurrentlyPlayingTrack, 5000);
   }
 
   // Event listener for the login button
@@ -87,12 +98,6 @@ document.addEventListener('DOMContentLoaded', function () {
     window.location.href = '/login';
   });
 
-  // Initialize Spotify Player when SDK is ready
-  window.onSpotifyWebPlaybackSDKReady = () => {
-    if (accessToken) {
-      initializePlayer();
-    }
-  };
 
   // Show/Hide Lyrics functionality
   document
@@ -223,10 +228,28 @@ async function handleSearch() {
 function handleVolumeChange() {
   const volumeControl = document.getElementById('volume-control');
   const volume = volumeControl.value / 100;
-  if (isPlayingSpotify && player) {
-    player.setVolume(volume).then(() => {
-      console.log(`Spotify volume set to ${volume}`);
-    });
+  if (isPlayingSpotify) {
+    fetch(
+      `https://api.spotify.com/v1/me/player/volume?volume_percent=${Math.round(
+        volume * 100
+      )}`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    )
+      .then((response) => {
+        if (response.ok) {
+          console.log(`Spotify volume set to ${volume}`);
+        } else {
+          console.error('Error setting volume:', response.statusText);
+        }
+      })
+      .catch((error) => {
+        console.error('Error setting volume:', error);
+      });
   } else if (audioPlayer) {
     audioPlayer.volume = volume;
     console.log(`Local audio volume set to ${volume}`);
@@ -239,13 +262,49 @@ function handleProgressBarClick(e) {
   const offsetX = e.clientX - rect.left;
   const totalWidth = rect.width;
   const percentage = offsetX / totalWidth;
-  let position_ms;
-  if (isPlayingSpotify && spotifyTrackDuration) {
-    position_ms = percentage * spotifyTrackDuration;
-    seek(position_ms);
+
+  if (isPlayingSpotify) {
+    // Fetch current track to get duration
+    fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        const duration_ms = data.item.duration_ms;
+        const position_ms = percentage * duration_ms;
+
+        // Seek to the position
+        fetch(
+          `https://api.spotify.com/v1/me/player/seek?position_ms=${Math.floor(
+            position_ms
+          )}`,
+          {
+            method: 'PUT',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        )
+          .then((response) => {
+            if (response.ok) {
+              console.log(`Seeked to ${position_ms}ms in Spotify track`);
+              // Update the progress bar
+              fetchCurrentlyPlayingTrack();
+            } else {
+              console.error('Error seeking:', response.statusText);
+            }
+          })
+          .catch((error) => {
+            console.error('Error seeking:', error);
+          });
+      })
+      .catch((error) => {
+        console.error('Error fetching current track for seeking:', error);
+      });
   } else if (audioPlayer.duration) {
-    position_ms = percentage * audioPlayer.duration * 1000;
-    seek(position_ms);
+    audioPlayer.currentTime = percentage * audioPlayer.duration;
   }
 }
 
@@ -270,9 +329,23 @@ function populateLocalSongs() {
 // Playback control functions
 function play() {
   if (isPlayingSpotify) {
-    player.resume().then(() => {
-      updatePlayPauseButton(true);
-    });
+    fetch('https://api.spotify.com/v1/me/player/play', {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+      .then((response) => {
+        if (response.ok) {
+          console.log('Playback started');
+          updatePlayPauseButton(true);
+        } else {
+          console.error('Error starting playback:', response.statusText);
+        }
+      })
+      .catch((error) => {
+        console.error('Error starting playback:', error);
+      });
   } else if (audioPlayer) {
     audioPlayer.play();
     updatePlayPauseButton(true);
@@ -281,9 +354,23 @@ function play() {
 
 function pause() {
   if (isPlayingSpotify) {
-    player.pause().then(() => {
-      updatePlayPauseButton(false);
-    });
+    fetch('https://api.spotify.com/v1/me/player/pause', {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+      .then((response) => {
+        if (response.ok) {
+          console.log('Playback paused');
+          updatePlayPauseButton(false);
+        } else {
+          console.error('Error pausing playback:', response.statusText);
+        }
+      })
+      .catch((error) => {
+        console.error('Error pausing playback:', error);
+      });
   } else if (audioPlayer) {
     audioPlayer.pause();
     updatePlayPauseButton(false);
@@ -292,17 +379,23 @@ function pause() {
 
 function togglePlayPause() {
   if (isPlayingSpotify) {
-    player.getCurrentState().then((state) => {
-      if (!state) {
-        console.error('User is not playing music through the Web Playback SDK');
-        return;
-      }
-      if (state.paused) {
-        play();
-      } else {
-        pause();
-      }
-    });
+    // Fetch current playback state to determine if we should play or pause
+    fetch('https://api.spotify.com/v1/me/player', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.is_playing) {
+          pause();
+        } else {
+          play();
+        }
+      })
+      .catch((error) => {
+        console.error('Error toggling playback:', error);
+      });
   } else if (audioPlayer) {
     if (audioPlayer.paused) {
       play();
@@ -314,9 +407,24 @@ function togglePlayPause() {
 
 function nextTrack() {
   if (isPlayingSpotify) {
-    player.nextTrack().then(() => {
-      console.log('Skipped to next Spotify track');
-    });
+    fetch('https://api.spotify.com/v1/me/player/next', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+      .then((response) => {
+        if (response.ok) {
+          console.log('Skipped to next track');
+          // Fetch the currently playing track to update UI
+          setTimeout(fetchCurrentlyPlayingTrack, 1000);
+        } else {
+          console.error('Error skipping to next track:', response.statusText);
+        }
+      })
+      .catch((error) => {
+        console.error('Error skipping to next track:', error);
+      });
   } else {
     if (currentTrackIndex !== null && currentTrackIndex < songs.length - 1) {
       playLocalSong(currentTrackIndex + 1);
@@ -329,9 +437,24 @@ function nextTrack() {
 
 function previousTrack() {
   if (isPlayingSpotify) {
-    player.previousTrack().then(() => {
-      console.log('Went back to previous Spotify track');
-    });
+    fetch('https://api.spotify.com/v1/me/player/previous', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+      .then((response) => {
+        if (response.ok) {
+          console.log('Went back to previous track');
+          // Fetch the currently playing track to update UI
+          setTimeout(fetchCurrentlyPlayingTrack, 1000);
+        } else {
+          console.error('Error going back to previous track:', response.statusText);
+        }
+      })
+      .catch((error) => {
+        console.error('Error going back to previous track:', error);
+      });
   } else {
     if (currentTrackIndex !== null && currentTrackIndex > 0) {
       playLocalSong(currentTrackIndex - 1);
@@ -343,10 +466,23 @@ function previousTrack() {
 }
 
 function updateProgressBar() {
-  if (isPlayingSpotify && playerState) {
-    const progress =
-      (playerState.position / playerState.duration) * 100;
-    document.getElementById('progress-bar').style.width = `${progress}%`;
+  if (isPlayingSpotify) {
+    // Fetch current playback state
+    fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data && data.item) {
+          const progress = (data.progress_ms / data.item.duration_ms) * 100;
+          document.getElementById('progress-bar').style.width = `${progress}%`;
+        }
+      })
+      .catch((error) => {
+        console.error('Error updating progress bar:', error);
+      });
   } else if (audioPlayer && audioPlayer.duration) {
     const progress =
       (audioPlayer.currentTime / audioPlayer.duration) * 100;
@@ -354,39 +490,152 @@ function updateProgressBar() {
   }
 }
 
-function handleProgressBarClick(e) {
-  const progressBarContainer = document.querySelector('.progress');
-  const rect = progressBarContainer.getBoundingClientRect();
-  const offsetX = e.clientX - rect.left;
-  const totalWidth = rect.width;
-  const percentage = offsetX / totalWidth;
-
-  if (isPlayingSpotify) {
-    const position_ms = percentage * playerState.duration;
-    player.seek(position_ms).then(() => {
-      console.log(`Seeked to ${position_ms}ms in Spotify track`);
-    });
-  } else if (audioPlayer.duration) {
-    audioPlayer.currentTime = percentage * audioPlayer.duration;
+// Function to fetch the currently playing track
+function fetchCurrentlyPlayingTrack() {
+  if (accessToken && !isPlayingLocal) {
+    fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+      .then((response) => {
+        if (response.status === 204) {
+          // No content, nothing is playing
+          console.log('Nothing is currently playing.');
+          // Update UI accordingly
+          updateNowPlaying(null);
+          return null;
+        } else if (response.ok) {
+          return response.json();
+        } else {
+          throw new Error('Failed to fetch currently playing track.');
+        }
+      })
+      .then((data) => {
+        if (data && data.item) {
+          console.log('Currently playing:', data.item.name);
+          isPlayingSpotify = true;
+          // Update UI with currently playing track
+          updateNowPlaying(data);
+        } else {
+          isPlayingSpotify = false;
+        }
+      })
+      .catch((error) => {
+        console.error('Error fetching currently playing track:', error);
+      });
   }
 }
 
-// Event listener for when the local song ends
-audioPlayer.addEventListener('ended', () => {
-  if (currentTrackIndex !== null) {
-    if (currentTrackIndex < songs.length - 1) {
-      playLocalSong(currentTrackIndex + 1);
-    } else {
-      // Optionally loop back to the first song
-      playLocalSong(0);
+function playSpotifyTrack(track) {
+  if (accessToken && window.device_id) { // Added the missing if condition
+    isPlayingSpotify = true;
+    isPlayingLocal = false;
+    currentTrackIndex = null; // Reset local track index
+
+    // Update UI elements
+    document.getElementById('song-title').textContent = track.name;
+    document.getElementById('now-playing').textContent = track.name;
+    document.getElementById('current-artist').textContent = track.artists
+      .map((artist) => artist.name)
+      .join(', ');
+    document.getElementById('album-cover').src =
+      track.album.images[0]?.url || '/images/default.jpg';
+    document.getElementById('youtube-link').href = `https://www.youtube.com/results?search_query=${encodeURIComponent(
+      track.name + ' ' + track.artists[0].name
+    )}`;
+    document.getElementById('spotify-link').href = track.external_urls.spotify;
+    document.getElementById('spotify-link').style.display = 'inline';
+
+    // Update background image
+    const albumImageUrl = track.album.images[0]?.url || '/images/default.jpg';
+    updateBackgroundImage(albumImageUrl);
+
+    // Hide local audio player
+    audioPlayer.style.display = 'none';
+
+    // Update spotifyTrackDuration
+    spotifyTrackDuration = track.duration_ms;
+
+    // Transfer playback to this device
+    transferPlaybackHere().then(() => {
+      // Play the track via Spotify
+      fetch(
+        `https://api.spotify.com/v1/me/player/play?device_id=${window.device_id}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ uris: [track.uri] }),
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      )
+        .then((response) => {
+          if (!response.ok) {
+            return response.json().then((errData) => {
+              console.error('Error playing track:', errData);
+              alert(`Error playing track: ${errData.error.message}`);
+            });
+          } else {
+            console.log('Playback started successfully');
+          }
+        })
+        .catch((error) => console.error('Error playing track:', error));
+    });
+
+    // Update play/pause button
+    updatePlayPauseButton(true);
+
+    // Pause local audio if needed
+    if (!audioPlayer.paused) {
+      audioPlayer.pause();
     }
+  } else {
+    console.error('Cannot play track: Missing access token or device ID.');
+    alert('Cannot play track: Missing access token or device ID.');
   }
-});
+}
+
+
+function updateNowPlaying(data) {
+  if (!data || !data.item) {
+    // Nothing is playing
+    document.getElementById('song-title').textContent = 'No song playing';
+    document.getElementById('current-artist').textContent = '';
+    document.getElementById('now-playing').textContent = 'None';
+    document.getElementById('album-cover').src = '/images/default.jpg';
+    // Optionally, reset the progress bar
+    document.getElementById('progress-bar').style.width = '0%';
+  } else {
+    const track = data.item;
+    const isPlaying = data.is_playing;
+    const progress_ms = data.progress_ms;
+    const duration_ms = track.duration_ms;
+    document.getElementById('song-title').textContent = track.name;
+    document.getElementById('current-artist').textContent = track.artists
+      .map((artist) => artist.name)
+      .join(', ');
+    document.getElementById('now-playing').textContent = track.name;
+    document.getElementById('album-cover').src =
+      track.album.images[0]?.url || '/images/default.jpg';
+    // Update progress bar
+    const progress = (progress_ms / duration_ms) * 100;
+    document.getElementById('progress-bar').style.width = `${progress}%`;
+    // Update play/pause button
+    updatePlayPauseButton(isPlaying);
+    // Update background image
+    updateBackgroundImage(track.album.images[0]?.url || '');
+    // Hide local audio player
+    audioPlayer.style.display = 'none';
+  }
+}
 
 // Function to play local songs
 async function playLocalSong(index) {
   currentTrackIndex = index;
   isPlayingSpotify = false;
+  isPlayingLocal = true;
 
   const song = songs[index];
   const songTitle = document.getElementById('song-title');
@@ -502,75 +751,24 @@ function setupNavigation() {
   homeSection.style.display = 'block';
 }
 
-// Function to play Spotify tracks from search results
-function playSpotifyTrack(track) {
-  if (accessToken && window.device_id) {
-    isPlayingSpotify = true;
-    currentTrackIndex = null; // Reset local track index
-
-    // Update UI elements
-    document.getElementById('song-title').textContent = track.name;
-    document.getElementById('now-playing').textContent = track.name;
-    document.getElementById('current-artist').textContent = track.artists
-      .map((artist) => artist.name)
-      .join(', ');
-    document.getElementById('album-cover').src =
-      track.album.images[0]?.url || '';
-    document.getElementById('youtube-link').href = `https://www.youtube.com/results?search_query=${encodeURIComponent(
-      track.name + ' ' + track.artists[0].name
-    )}`;
-    document.getElementById('spotify-link').href = track.external_urls.spotify;
-    document.getElementById('spotify-link').style.display = 'inline';
-
-    // Update background image
-    const albumImageUrl = track.album.images[0]?.url || '';
-    updateBackgroundImage(albumImageUrl);
-
-    // Hide local audio player
-    audioPlayer.style.display = 'none';
-
-    // Update spotifyTrackDuration
-    spotifyTrackDuration = track.duration_ms;
-
-    // Transfer playback to this device
-    transferPlaybackHere().then(() => {
-      // Play the track via Spotify
-      fetch(
-        `https://api.spotify.com/v1/me/player/play?device_id=${window.device_id}`,
-        {
-          method: 'PUT',
-          body: JSON.stringify({ uris: [track.uri] }),
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      )
-        .then((response) => {
-          if (!response.ok) {
-            // If response is not OK, parse the error message
-            return response.json().then((errData) => {
-              console.error('Error playing track:', errData);
-              alert(`Error playing track: ${errData.error.message}`);
-            });
-          } else {
-            console.log('Playback started successfully');
-          }
-        })
-        .catch((error) => console.error('Error playing track:', error));
-    });
-
-    // Update play/pause button
-    updatePlayPauseButton(true);
-
-    // Pause local audio if needed
-    if (!audioPlayer.paused) {
-      audioPlayer.pause();
-    }
+// Function to update the play/pause button icon
+function updatePlayPauseButton(isPlaying) {
+  const playPauseIcon = document
+    .getElementById('play-pause-button')
+    .querySelector('i');
+  if (isPlaying) {
+    playPauseIcon.classList.remove('fa-play');
+    playPauseIcon.classList.add('fa-pause');
   } else {
-    console.error('Cannot play track: Missing access token or device ID.');
-    alert('Cannot play track: Missing access token or device ID.');
+    playPauseIcon.classList.remove('fa-pause');
+    playPauseIcon.classList.add('fa-play');
   }
+}
+
+// Function to update background image
+function updateBackgroundImage(imageUrl) {
+  const mainContainer = document.getElementById('main-container');
+  mainContainer.style.backgroundImage = `url('${imageUrl}')`;
 }
 
 function transferPlaybackHere() {
@@ -717,6 +915,11 @@ function displayPlaylists(playlists) {
     playlistList.appendChild(listItem);
   });
 }
+
+document.getElementById('play-pause-button').addEventListener('click', () => {
+  console.log('Play/Pause button clicked');
+  togglePlayPause();
+});
 
 // Fetch playlist tracks
 async function fetchPlaylistTracks(playlistId, playlistName) {

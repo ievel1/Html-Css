@@ -1,14 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta
+  http-equiv="Content-Security-Policy"
+  content="default-src 'self'; script-src 'self' https://sdk.scdn.co; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://i.scdn.co; connect-src 'self' https://api.spotify.com https://sdk.scdn.co; frame-src 'self' https://sdk.scdn.co;"
+>
   <meta charset="UTF-8">
   <title>My Music Player</title>
   <!-- Viewport Meta Tag for Responsive Design -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Include Bootstrap CSS from CDN -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <!-- Include Font Awesome CSS from CDN -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <!-- Content Security Policy Meta Tag -->
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://sdk.scdn.co; object-src 'none';">
+
+  <!-- Include Bootstrap CSS locally -->
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <!-- Include Font Awesome CSS locally -->
+  <link rel="stylesheet" href="/css/all.min.css">
   <!-- Include your custom CSS -->
   <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -69,8 +76,12 @@
             <div class="container mt-3">
               <div class="row justify-content-center">
                 <button id="prev-button" class="btn btn-secondary mx-2" aria-label="Previous"><i class="fas fa-step-backward"></i></button>
-                <button id="play-pause-button" class="btn btn-primary mx-2" aria-label="Play/Pause"><i class="fas fa-play"></i></button>
-                <button id="next-button" class="btn btn-secondary mx-2" aria-label="Next"><i class="fas fa-step-forward"></i></button>
+                <button id="play-pause-button" class="btn btn-primary mx-2" aria-label="Play/Pause">
+                  <i class="fas fa-play"></i>
+                </button>
+                <button id="next-button" class="btn btn-secondary mx-2" aria-label="Next">
+                  <i class="fas fa-step-forward"></i>
+                </button>
               </div>
               <!-- Additional Controls -->
               <div class="row justify-content-center mt-2">
@@ -136,14 +147,14 @@
     </div>
   </div>
 
-  <!-- Include JavaScript Libraries from CDN -->
-  <!-- jQuery -->
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <!-- Bootstrap JS Bundle -->
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
-  <!-- Include Your Main JavaScript File -->
-  <script src="/javascript/main.js"></script>
-  <!-- Include Spotify Web Playback SDK -->
-  <script src="https://sdk.scdn.co/spotify-player.js"></script>
+<!-- Include Spotify Web Playback SDK -->
+<script src="https://sdk.scdn.co/spotify-player.js"></script>
+<!-- Include JavaScript Libraries -->
+<!-- Include jQuery locally -->
+<script src="/javascript/jquery-3.7.1.min.js"></script>
+<!-- Include Bootstrap JS Bundle locally -->
+<script src="/javascript/bootstrap.bundle.min.js"></script>
+<!-- Include Your Main JavaScript File -->
+<script src="/javascript/main.js"></script>
 </body>
 </html>

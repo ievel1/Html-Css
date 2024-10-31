@@ -137,6 +137,7 @@ p {
 /* Buttons */
 .btn {
   margin: 5px;
+  color: #ffffff !important;  /* Ensure button text is visible */
 }
 
 .btn i {
@@ -144,23 +145,25 @@ p {
 }
 
 .btn-primary {
-  background-color: #1DB954;
-  border-color: #1DB954;
+  background-color: #1DB954 !important;
+  border-color: #1DB954 !important;
+  color: #ffffff !important;
 }
 
 .btn-primary:hover {
-  background-color: #1ed760;
-  border-color: #1ed760;
+  background-color: #1ed760 !important;
+  border-color: #1ed760 !important;
 }
 
 .btn-secondary {
-  background-color: #535353;
-  border-color: #535353;
+  background-color: #535353 !important;
+  border-color: #535353 !important;
+  color: #ffffff !important;
 }
 
 .btn-secondary:hover {
-  background-color: #636363;
-  border-color: #636363;
+  background-color: #636363 !important;
+  border-color: #636363 !important;
 }
 
 /* Progress Bar */
